@@ -1,1 +1,8 @@
 Profanity filter in python
+
+Calculates a profanity score between 1-10. The list of profane words is
+in profane_words.txt in ROT13 format. Each word has a score between 1-10
+associated with it (to indicate the severity fo the word).
+
+The final score is simply a weighted average of the profane words
+occuring in the input text. 
