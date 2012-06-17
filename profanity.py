@@ -15,7 +15,8 @@ import json
 
 import utilities
 
-GROUP_SIZE = 3
+GROUP_SIZE = 2
+CHAR_MATCH_HEURISTIC = 0.8
 
 SPECIAL_CHAR_ALIASES = {
     's' : '$',
@@ -55,8 +56,6 @@ def profanityScore(text):
 
         w = utilities.rot13(w)
 
-        print (w)
-
         # If the exact word appears in the list of profane words
         if w in profane_words:
             words_count[w] += 1
@@ -77,7 +76,43 @@ def profanityScore(text):
     # If they form a profane word, update the count. If they form the
     # beginning of a profane word, then see if it actually matches one
     # and then count as one
-    
+
+    for i in range(len(words)-GROUP_SIZE):
+        concat_word = words[i] + words[i+1] + words[i+2]
+        concat_word = utilities.rot13(concat_word)
+
+        for pw in profane_words:
+            
+            if pw.find(concat_word) != -1:
+                if checkMatchPercent(len(concat_word), len(pw)):
+                    words_count[pw] += 1
+                    break
+
+                # check further...
+                j = 2
+                while True:
+                    j += 1
+                    if i + j > len(words)-1:
+                        break
+
+                    concat_word += utilities.rot13(words[i+j])
+
+                    # continue while we keep on concatenating the
+                    # letters and find that it is a substring of an
+                    # actual profane word
+                    if pw.find(concat_word) != -1:
+                        continue
+                    # once the concatenated word is not a substring of
+                    # an actual profane word, see how far we have
+                    # reached i.e. does the word match a significant
+                    # number of characters of a profane word to be
+                    # counted as an actual profanity or not. 
+                    # If that is the case, and the word is not a
+                    # dictionary word, then count it as an actual
+                    # profanity that was disguised
+                    elif checkMatchPercent(len(concat_word)-1, len(pw)):
+                        words_count[pw] += 1
+                        break
     
     #utilities.prettyPrintDict(words_count)
 
@@ -99,6 +134,12 @@ def profanityScore(text):
 def getTransposedWords(word):
     """
     Get a list of possible transpositions of the current profane word.
+    Transpositions include:
+        - Transposing two adjacent characters: eg - siht (for shit)
+        - Replacing two letters with **: eg - f**k
+        - Replacing letters with special characters: eg - $hit
+    eg - For the word "shit", we will return the following:
+        ['siht', 'shti', 's**it', 'sh**t', '$hit', 'sh!t']
     """
     ret = []
 
@@ -110,7 +151,7 @@ def getTransposedWords(word):
     # Now replace letter pairs with *. Once again, skip the first and last
     # characters
     for i in range(1, len(word)-1):
-        ret.append(word[:i] + '**' + word[i+1:])
+        ret.append(word[:i] + '**' + word[i+2:])
 
     # Now repalce words with special characters
     for ch in SPECIAL_CHAR_ALIASES.keys():
@@ -119,3 +160,10 @@ def getTransposedWords(word):
 
     return ret
 
+def checkMatchPercent(partialWordLen, wordLen):
+    if wordLen <= 4 and partialWordLen >= 3:
+            return True
+    elif partialWordLen/wordLen > CHAR_MATCH_HEURISTIC:
+            return True
+    else: 
+        return False
