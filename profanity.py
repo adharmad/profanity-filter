@@ -15,6 +15,8 @@ import json
 
 import utilities
 
+GROUP_SIZE = 3
+
 SPECIAL_CHAR_ALIASES = {
     's' : '$',
     'i' : '!',
@@ -53,6 +55,8 @@ def profanityScore(text):
 
         w = utilities.rot13(w)
 
+        print (w)
+
         # If the exact word appears in the list of profane words
         if w in profane_words:
             words_count[w] += 1
@@ -60,13 +64,21 @@ def profanityScore(text):
         # Check if the word is a transpose of the profane words
         for pw in profane_words_transpose.keys():
             if w in profane_words_transpose[pw]:
-                words_count[w] += 1
+                words_count[pw] += 1
 
         # Check if profane words is a substring of the word
         for pw in profane_words:
             if w.find(pw) != -1 and not inDict:
-                words_count[w] += 1
+                words_count[pw] += 1
 
+
+    # Take words GROUP_SIZE at a time and see if they either form a
+    # profane word, or the beginning of one. 
+    # If they form a profane word, update the count. If they form the
+    # beginning of a profane word, then see if it actually matches one
+    # and then count as one
+    
+    
     #utilities.prettyPrintDict(words_count)
 
     # compute the score
@@ -76,7 +88,10 @@ def profanityScore(text):
         running_sum += words_count[w] * profane_word_weights[w]
         count += words_count[w]
 
-    score = running_sum/count
+    if count == 0:
+        score = 0
+    else:
+        score = running_sum/count
 
     return score
         
@@ -84,14 +99,13 @@ def profanityScore(text):
 def getTransposedWords(word):
     """
     Get a list of possible transpositions of the current profane word.
-    eg - 
     """
     ret = []
 
     # First iterate through the word and transpose 2 adjacent characters
     # (leaving out the first and the last)
     for i in range(1, len(word)-1):
-        ret.append(word[:i] + word[i+1] + word[i] + word[i+1:])
+        ret.append(word[:i] + word[i+1] + word[i] + word[i+2:])
 
     # Now replace letter pairs with *. Once again, skip the first and last
     # characters
